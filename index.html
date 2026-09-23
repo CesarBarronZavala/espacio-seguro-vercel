@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espacio Seguro | Concienciación y Apoyo contra el Acoso</title>
+  <meta name="description" content="Plataforma comunitaria segura y anónima para compartir testimonios sobre acoso escolar, laboral y cibernético, y acceder a recursos de ayuda y contención en crisis 24/7.">
+  
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Estilos principales -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Supabase JS Client v2 (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Script inline para apertura inmediata garantizada del modal -->
+  <script>
+    function openStoryModal(prefillCategory) {
+      var modal = document.getElementById('storyModal');
+      if (modal) {
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+        modal.style.zIndex = '999999';
+        document.body.style.overflow = 'hidden';
+        var dateInput = document.getElementById('inputFecha');
+        if (dateInput && !dateInput.value) {
+          dateInput.value = new Date().toISOString().split('T')[0];
+        }
+        if (prefillCategory) {
+          var select = document.getElementById('selectTipoAcoso');
+          if (select) select.value = prefillCategory;
+        }
+      }
+    }
+
+    function closeStoryModal() {
+      var modal = document.getElementById('storyModal');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    function openConfigModal() {
+      var modal = document.getElementById('configModal');
+      if (modal) {
+        if (window.SUPABASE_CONFIG) {
+          var urlInput = document.getElementById('inputSupabaseUrl');
+          var keyInput = document.getElementById('inputSupabaseAnonKey');
+          if (urlInput) urlInput.value = window.SUPABASE_CONFIG.url || '';
+          if (keyInput) keyInput.value = window.SUPABASE_CONFIG.anonKey || '';
+        }
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+        modal.style.zIndex = '999999';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeConfigModal() {
+      var modal = document.getElementById('configModal');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+  </script>
+
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. BARRA SUPERIOR DE CRISIS Y AYUDA 24/7 (LIMPIA Y COMPACTA)
+       ========================================================================= -->
+  <aside class="crisis-top-bar" aria-label="Líneas de ayuda de emergencia inmediata">
+    <div class="container">
+      <div class="crisis-bar-content">
+        <span class="crisis-badge">🚨 24/7</span>
+        <span>¿En crisis o necesitas apoyo emocional? <strong>No estás solo/a.</strong></span>
+      </div>
+      <div class="crisis-quick-links">
+        <a href="tel:8009112000" class="crisis-phone-pill" title="Línea de la Vida">🕊️ Línea de la Vida: 800 911 2000</a>
+        <a href="tel:911" class="crisis-phone-pill" title="Llamar a Emergencias">📞 911</a>
+        <a href="#recursos-ayuda" class="crisis-phone-pill" style="background:#FFF; color:#2C7A6B;">Ver líneas ↓</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       2. CABECERA LIMPIA Y NAVEGACIÓN DESKTOP
+       ========================================================================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#inicio" class="brand-logo" aria-label="Espacio Seguro - Ir al Inicio">
+        <div class="brand-icon-wrapper">🌱</div>
+        <span class="brand-title">Espacio Seguro</span>
+      </a>
+
+      <!-- Menú de navegación desktop conciso y sin amontonarse -->
+      <nav aria-label="Navegación principal">
+        <ul class="nav-menu">
+          <li><a href="#tipos-acoso" class="nav-link">Tipos de Acoso</a></li>
+          <li><a href="#feed-section" class="nav-link">Relatos</a></li>
+          <li><a href="#consejos" class="nav-link">Guía de Ayuda</a></li>
+          <li><a href="#recursos-ayuda" class="nav-link nav-link-crisis">🚨 Ayuda 24/7</a></li>
+        </ul>
+      </nav>
+      
+      <!-- Acciones de cabecera -->
+      <div class="header-actions">
+        <button id="btnOpenStoryModalHeader" class="btn btn-primary btn-sm" onclick="openStoryModal()">
+          ✍️ <span>Contar historia</span>
+        </button>
+        <button id="btnOpenConfigModal" class="icon-btn" onclick="openConfigModal()" title="Configurar conexión con Supabase" aria-label="Configurar base de datos">
+          ⚙️
+        </button>
+        <a href="admin.html" class="icon-btn" title="Panel de moderación" aria-label="Panel de moderación">
+          🛡️
+        </a>
+        <button id="btnMobileMenu" class="mobile-menu-btn" aria-label="Abrir menú de navegación">
+          ☰
+        </button>
+      </div>
+    </div>
+
+    <!-- Menú desplegable para móviles -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-label="Menú móvil">
+      <ul class="mobile-nav-links">
+        <li><a href="#inicio" class="mobile-nav-link" onclick="closeMobileMenu()">🏠 Inicio</a></li>
+        <li><a href="#tipos-acoso" class="mobile-nav-link" onclick="closeMobileMenu()">📚 Tipos de Acoso y Señales</a></li>
+        <li><a href="#feed-section" class="mobile-nav-link" onclick="closeMobileMenu()">💬 Historias y Experiencias</a></li>
+        <li><a href="#consejos" class="mobile-nav-link" onclick="closeMobileMenu()">💡 Protocolo de Actuación</a></li>
+        <li><a href="#faq" class="mobile-nav-link" onclick="closeMobileMenu()">❓ Preguntas Frecuentes</a></li>
+        <li><a href="#recursos-ayuda" class="mobile-nav-link" style="color: var(--color-crisis-btn); font-weight: 700;" onclick="closeMobileMenu()">🚨 Líneas de Ayuda 24/7</a></li>
+        <li><a href="#privacidad" class="mobile-nav-link" onclick="closeMobileMenu()">🛡️ Aviso de Privacidad</a></li>
+      </ul>
+      <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle);">
+        <button onclick="openStoryModal(); closeMobileMenu();" class="btn btn-primary btn-sm" style="flex: 1;">
+          ✍️ Contar mi historia
+        </button>
+        <a href="admin.html" class="btn btn-secondary btn-sm" style="flex: 1; text-align: center;">
+          🛡️ Panel Moderación
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- =========================================================================
+         3. SECCIÓN HERO / BIENVENIDA EMPÁTICA (ESPACIOSA EN 2 COLUMNAS)
+         ========================================================================= -->
+    <section id="inicio" class="hero-section">
+      <div class="container">
+        <div class="hero-layout-grid">
+          
+          <!-- Columna Izquierda: Mensaje y Acciones Principales -->
+          <div class="hero-main-column">
+            <span class="hero-tag">🌱 Comunidad de Apoyo y Respeto</span>
+            
+            <h1 class="hero-title">
+              Tu voz importa.
+              <span class="hero-title-highlight">Un lugar seguro para sanar y ser escuchado/a.</span>
+            </h1>
+            
+            <p class="hero-desc">
+              El acoso escolar (bullying), laboral (mobbing), cibernético y social no debe vivirse en silencio ni en soledad. 
+              Este espacio fue creado para validar tus sentimientos, aprender a poner límites, acceder a orientación profesional 
+              y compartir testimonios con respeto, empatía y confidencialidad total.
+            </p>
+            
+            <div class="hero-features">
+              <div class="hero-feature-item">
+                <span class="hero-feature-icon">🔒</span>
+                <span>100% Anónimo o con alias</span>
+              </div>
+              <div class="hero-feature-item">
+                <span class="hero-feature-icon">🛡️</span>
+                <span>Moderación ética previa</span>
+              </div>
+              <div class="hero-feature-item">
+                <span class="hero-feature-icon">🤝</span>
+                <span>Recursos de ayuda 24 horas</span>
+              </div>
+            </div>
+
+            <div class="hero-actions">
+              <button id="btnOpenStoryModalHero" class="btn btn-primary btn-lg" onclick="openStoryModal()">
+                ✍️ Compartir mi experiencia
+              </button>
+              <a href="#feed-section" class="btn btn-secondary btn-lg">
+                💬 Explorar relatos
+              </a>
+              <a href="#recursos-ayuda" class="btn btn-crisis btn-lg">
+                🚨 Necesito ayuda ahora
+              </a>
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Tarjeta Showcase de Comunidad y Seguridad -->
+          <div class="hero-side-card">
+            <div class="hero-quote-box">
+              "Romper el silencio es el primer paso para transformar el dolor en fortaleza y acompañar a otros en su propio camino."
+            </div>
+
+            <div class="hero-stats-row">
+              <div class="hero-stat-item">
+                <div class="hero-stat-number">100%</div>
+                <div class="hero-stat-label">Confidencial y Seguro</div>
+              </div>
+              <div class="hero-stat-item">
+                <div class="hero-stat-number">24/7</div>
+                <div class="hero-stat-label">Líneas de Contención</div>
+              </div>
+            </div>
+
+            <div class="hero-crisis-mini-banner">
+              <div>
+                <strong>¿En crisis emocional inmediata?</strong>
+                <span>Atención gratuita y confidencial las 24 horas.</span>
+              </div>
+              <a href="tel:8009112000" class="btn btn-sm btn-crisis" style="font-size: 0.78rem;">📞 800 911 2000</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         4. SECCIÓN: TIPOS DE ACOSO Y CÓMO RECONOCERLOS (ESPACIOSA EN GRID 2x2)
+         ========================================================================= -->
+    <section id="tipos-acoso" class="section-wrapper section-wrapper-white">
+      <div class="container">
+        
+        <div class="section-header-block">
+          <div class="section-badge">📚 EDUCACIÓN Y PREVENCIÓN</div>
+          <h2 class="section-title">Identifica las distintas formas de acoso</h2>
+          <p class="section-desc">
+            Reconocer las conductas abusivas a tiempo permite poner límites firmes, proteger tu salud emocional y buscar el apoyo adecuado.
+          </p>
+        </div>
+
+        <div class="types-grid">
+          
+          <!-- Tarjeta 1: Acoso Escolar -->
+          <article class="type-card type-card-escolar">
+            <div>
+              <div class="type-card-header">
+                <div class="type-card-icon">🎒</div>
+                <span class="type-badge-pill">Acoso Escolar</span>
+              </div>
+              
+              <h3 class="type-card-title">Acoso Escolar (Bullying)</h3>
+              <p class="type-card-desc">
+                Agresiones físicas, verbales, psicológicas o de exclusión social continuadas entre estudiantes dentro del entorno educativo o sus alrededores.
+              </p>
+              
+              <div class="type-card-signals">
+                <strong>⚠️ Señales de alerta más comunes:</strong>
+                <ul>
+                  <li>Burlas sistemáticas, apodos despectivos y humillaciones públicas.</li>
+                  <li>Aislamiento social forzado y daño o robo reiterado de útiles escolares.</li>
+                  <li>Miedo persistente o rechazo repentino a asistir a clases.</li>
+                </ul>
+              </div>
+            </div>
+            
+            <button type="button" class="type-card-btn" onclick="filterFeedFromCard('escolar')">
+              🔍 Ver relatos de Acoso Escolar →
+            </button>
+          </article>
+
+          <!-- Tarjeta 2: Acoso Laboral -->
+          <article class="type-card type-card-laboral">
+            <div>
+              <div class="type-card-header">
+                <div class="type-card-icon">💼</div>
+                <span class="type-badge-pill">Acoso Laboral</span>
+              </div>
+              
+              <h3 class="type-card-title">Acoso Laboral (Mobbing)</h3>
+              <p class="type-card-desc">
+                Comportamientos hostiles, intimidación sistemática y sabotaje en el espacio de trabajo para desestabilizar y desgastar a la persona.
+              </p>
+              
+              <div class="type-card-signals">
+                <strong>⚠️ Señales de alerta más comunes:</strong>
+                <ul>
+                  <li>Asignación de sobrecargas inalcanzables o retiro injustificado de funciones.</li>
+                  <li>Descalificación constante de tu desempeño en presencia de otros compañeros.</li>
+                  <li>Exclusión intencional de correos, juntas y decisiones operativas clave.</li>
+                </ul>
+              </div>
+            </div>
+            
+            <button type="button" class="type-card-btn" onclick="filterFeedFromCard('laboral')">
+              🔍 Ver relatos de Acoso Laboral →
+            </button>
+          </article>
+
+          <!-- Tarjeta 3: Ciberacoso -->
+          <article class="type-card type-card-cibernetico">
+            <div>
+              <div class="type-card-header">
+                <div class="type-card-icon">💻</div>
+                <span class="type-badge-pill">Ciberacoso</span>
+              </div>
+              
+              <h3 class="type-card-title">Ciberacoso (Cyberbullying)</h3>
+              <p class="type-card-desc">
+                Hostigamiento, acoso y amenazas constantes mediante redes sociales, apps de mensajería, foros o videojuegos en línea sin descanso.
+              </p>
+              
+              <div class="type-card-signals">
+                <strong>⚠️ Señales de alerta más comunes:</strong>
+                <ul>
+                  <li>Difusión de fotografías privadas, datos íntimos o rumores falsos sin permiso.</li>
+                  <li>Creación de perfiles o páginas falsas destinadas a la burla y el escarnio.</li>
+                  <li>Recepción continua de mensajes hostiles, doxxing o amenazas virtuales.</li>
+                </ul>
+              </div>
+            </div>
+            
+            <button type="button" class="type-card-btn" onclick="filterFeedFromCard('cibernetico')">
+              🔍 Ver relatos de Ciberacoso →
+            </button>
+          </article>
+
+          <!-- Tarjeta 4: Otro tipo de acoso -->
+          <article class="type-card type-card-otro">
+            <div>
+              <div class="type-card-header">
+                <div class="type-card-icon">🕊️</div>
+                <span class="type-badge-pill">Acoso Social</span>
+              </div>
+              
+              <h3 class="type-card-title">Acoso Social y Callejero</h3>
+              <p class="type-card-desc">
+                Intimidación, tocamientos no consentidos o comentarios lascivos en transporte público, calles, vecindarios o círculos comunitarios.
+              </p>
+              
+              <div class="type-card-signals">
+                <strong>⚠️ Señales de alerta más comunes:</strong>
+                <ul>
+                  <li>Comentarios invasivos, miradas intimidantes o persecución física.</li>
+                  <li>Invasión del espacio personal corporal en espacios comunitarios o transporte.</li>
+                  <li>Manipulación, coacción y chantaje emocional dentro de grupos sociales.</li>
+                </ul>
+              </div>
+            </div>
+            
+            <button type="button" class="type-card-btn" onclick="filterFeedFromCard('otro')">
+              🔍 Ver otros relatos comunitarios →
+            </button>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         5. SECCIÓN: PROTOCOLO Y CONSEJOS ("¿QUÉ HACER?")
+         ========================================================================= -->
+    <section id="consejos" class="section-wrapper" style="background-color: var(--bg-surface-soft);">
+      <div class="container">
+        <div class="section-header-block">
+          <div class="section-badge">💡 GUÍA DE ACTUACIÓN</div>
+          <h2 class="section-title">¿Qué hacer si vives o presencias una situación de acoso?</h2>
+          <p class="section-desc">
+            Pasos claros y seguros que puedes seguir para proteger tu integridad física y emocional.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <h3 class="step-title">No es tu culpa</h3>
+            <p class="step-text">
+              La agresión dice todo sobre quien la ejerce y nada sobre tu valor. Respira con calma y mantén presente que mereces respeto en todo momento.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <h3 class="step-title">Documenta y guarda pruebas</h3>
+            <p class="step-text">
+              Guarda capturas de pantalla, fechas, correos, notas de voz y testimonios de incidentes. Un registro cronológico es clave para respaldar cualquier reporte.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <h3 class="step-title">Rompe el silencio</h3>
+            <p class="step-text">
+              Habla con alguien de confianza: un familiar cercano, docente, orientador o recursos humanos. El aislamiento favorece al agresor; la compañía te fortalece.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">4</div>
+            <h3 class="step-title">Acude a apoyo profesional</h3>
+            <p class="step-text">
+              Si la situación te desborda o afecta tu salud mental, comunícate con las líneas gratuitas 24/7 de contención psicológica o instancias oficiales.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bloque para testigos -->
+        <div class="bystander-banner">
+          <div class="bystander-icon">🤝</div>
+          <div>
+            <h3 class="bystander-title">¿Eres testigo o compañero/a de alguien que sufre acoso?</h3>
+            <p class="bystander-desc">
+              No te sumes a las risas ni guardes silencio. Tu empatía puede salvar vidas: acércate a la persona en privado, dile que no está sola, 
+              ofrécele acompañarla a presentar un reporte o avisa a una autoridad competente.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         6. SECCIÓN: FEED DE EXPERIENCIAS COMPARTIDAS
+         ========================================================================= -->
+    <section id="feed-section" class="section-wrapper section-wrapper-white" aria-label="Feed de testimonios">
+      <div class="container">
+        
+        <!-- Indicador de conexión a Base de Datos -->
+        <div id="dbStatusBanner" class="db-status-banner">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span id="dbStatusIcon">🟢</span>
+            <span id="dbStatusText">Conectado a <strong>Supabase (PostgreSQL)</strong>.</span>
+          </div>
+          <button id="btnDbConfigurePrompt" class="btn btn-sm btn-outline" onclick="openConfigModal()" style="background:#FFF;">⚙️ Configurar</button>
+        </div>
+
+        <!-- Banner de invitación a compartir anécdota -->
+        <div class="feed-share-cta-card">
+          <div class="feed-share-cta-text">
+            <strong>¿Has superado o vivido una situación similar?</strong>
+            <span>Tu testimonio anónimo puede brindar esperanza, orientación y fuerza a quienes hoy lo necesitan.</span>
+          </div>
+          <button id="btnOpenStoryModalBanner" class="btn btn-primary btn-sm" onclick="openStoryModal()">
+            ✍️ Compartir mi experiencia
+          </button>
+        </div>
+
+        <!-- Controles del feed: Filtros y Búsqueda -->
+        <div class="feed-controls">
+          <div class="feed-header-row">
+            <h2 class="feed-title">
+              Experiencias compartidas
+              <span id="feedCountBadge" class="feed-count">3 relatos</span>
+            </h2>
+            
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="searchInput" class="search-input" placeholder="Buscar palabras clave, temas..." aria-label="Buscar en relatos">
+            </div>
+          </div>
+
+          <div class="filter-pills" role="tablist" aria-label="Filtrar por tipo de acoso">
+            <button class="filter-pill active" data-filter="todos" role="tab" aria-selected="true">
+              🌱 Todos
+            </button>
+            <button class="filter-pill" data-filter="escolar" role="tab" aria-selected="false">
+              🎒 Acoso Escolar (Bullying)
+            </button>
+            <button class="filter-pill" data-filter="laboral" role="tab" aria-selected="false">
+              💼 Acoso Laboral (Mobbing)
+            </button>
+            <button class="filter-pill" data-filter="cibernetico" role="tab" aria-selected="false">
+              💻 Ciberacoso
+            </button>
+            <button class="filter-pill" data-filter="otro" role="tab" aria-selected="false">
+              🕊️ Otro tipo de acoso
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor del Feed de historias (Pre-renderizado para carga inmediata) -->
+        <div id="feedGrid" class="feed-grid" aria-live="polite">
+          
+          <!-- Tarjeta 1 -->
+          <article class="story-card" data-id="1">
+            <div class="story-card-header">
+              <div class="story-meta-top">
+                <span class="badge-type badge-escolar">🎒 Acoso Escolar</span>
+                <span class="story-date">📅 15 mar 2024</span>
+              </div>
+              <h3 class="story-title">Aprender a poner límites en la preparatoria</h3>
+              <div class="story-author"><span class="author-anon">🔒 Testimonio Anónimo</span></div>
+            </div>
+            <div class="story-body">Durante mi primer año de preparatoria, un grupo de compañeros comenzó a burlarse de mi forma de vestir y a esconder mis útiles todos los días. Al principio guardé silencio por miedo a que fuera peor, pero el estrés empezó a afectar mi salud. Un día decidí contárselo a una profesora de confianza y a mi madre. Juntas acudimos con la dirección escolar. Aunque el proceso tomó tiempo, la intervención de los docentes y el apoyo de mi familia me devolvieron la tranquilidad. Comparto esto para recordarte que pedir ayuda no te hace débil; es el primer paso para proteger tu bienestar.</div>
+            <div class="story-footer">
+              <button type="button" class="btn-empathy" onclick="toggleEmpathy(1)" title="Mostrar solidaridad y apoyo" aria-label="Dar apoyo a este testimonio">
+                <span class="heart-icon">🤍</span>
+                <span>Te escuchamos</span>
+                <strong style="margin-left: 0.2rem;">14</strong>
+              </button>
+              <span style="font-size: 0.75rem; color: var(--color-text-light);">Espacio seguro</span>
+            </div>
+          </article>
+
+          <!-- Tarjeta 2 -->
+          <article class="story-card" data-id="2">
+            <div class="story-card-header">
+              <div class="story-meta-top">
+                <span class="badge-type badge-cibernetico">💻 Ciberacoso</span>
+                <span class="story-date">📅 20 may 2024</span>
+              </div>
+              <h3 class="story-title">Superando el ciberacoso y recuperando mi espacio digital</h3>
+              <div class="story-author"><span class="author-alias">👤 Camila R.</span></div>
+            </div>
+            <div class="story-body">Crearon un perfil falso en redes sociales usando mis fotos para difundir rumores falsos. Me sentí profundamente vulnerable y aislada. Decidí no responder a las provocaciones, guardé capturas de pantalla de todo como evidencia y reporté la cuenta en la plataforma. Además, hablé con la Línea de la Vida para recibir contención emocional porque la ansiedad no me dejaba dormir. Me ayudó mucho desconectarme por unos días y rodearme de amigos reales. Hoy sé que lo que otros digan en una pantalla no define quién soy.</div>
+            <div class="story-footer">
+              <button type="button" class="btn-empathy" onclick="toggleEmpathy(2)" title="Mostrar solidaridad y apoyo" aria-label="Dar apoyo a este testimonio">
+                <span class="heart-icon">🤍</span>
+                <span>Te escuchamos</span>
+                <strong style="margin-left: 0.2rem;">28</strong>
+              </button>
+              <span style="font-size: 0.75rem; color: var(--color-text-light);">Espacio seguro</span>
+            </div>
+          </article>
+
+          <!-- Tarjeta 3 -->
+          <article class="story-card" data-id="3">
+            <div class="story-card-header">
+              <div class="story-meta-top">
+                <span class="badge-type badge-laboral">💼 Acoso Laboral</span>
+                <span class="story-date">📅 10 ago 2024</span>
+              </div>
+              <h3 class="story-title">Hacer frente a la intimidación y sobrecarga laboral</h3>
+              <div class="story-author"><span class="author-anon">🔒 Testimonio Anónimo</span></div>
+            </div>
+            <div class="story-body">En mi trabajo anterior, un supervisor utilizaba comentarios despectivos y me excluía de reuniones importantes de manera deliberada. Empecé a registrar cada incidente con fecha, hora y correos de respaldo. Cuando la situación fue insostenible, presenté el reporte ante Recursos Humanos con las pruebas organizadas. Aunque decidí cambiar de empleo meses después, el proceso me enseñó a reconocer el acoso laboral a tiempo y a no normalizar ningún tipo de maltrato en el entorno profesional.</div>
+            <div class="story-footer">
+              <button type="button" class="btn-empathy" onclick="toggleEmpathy(3)" title="Mostrar solidaridad y apoyo" aria-label="Dar apoyo a este testimonio">
+                <span class="heart-icon">🤍</span>
+                <span>Te escuchamos</span>
+                <strong style="margin-left: 0.2rem;">9</strong>
+              </button>
+              <span style="font-size: 0.75rem; color: var(--color-text-light);">Espacio seguro</span>
+            </div>
+          </article>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         7. SECCIÓN: PREGUNTAS FRECUENTES (FAQ ACORDEÓN)
+         ========================================================================= -->
+    <section id="faq" class="section-wrapper" style="background-color: var(--bg-surface-soft);">
+      <div class="container">
+        <div class="section-header-block">
+          <div class="section-badge">❓ DUDAS COMUNES</div>
+          <h2 class="section-title">Preguntas Frecuentes</h2>
+          <p class="section-desc">
+            Información transparente sobre el funcionamiento de la plataforma, privacidad y moderación.
+          </p>
+        </div>
+
+        <div class="faq-container">
+          <!-- FAQ 1 -->
+          <div class="faq-item">
+            <button type="button" class="faq-question" onclick="toggleFaq(this)">
+              <span>¿Cómo se garantiza que mi publicación sea 100% anónima?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              Al seleccionar la opción de publicación anónima (marcada por defecto), el sistema no almacena ni muestra tu nombre, dirección IP, correos ni datos identificables. Solo se guarda el texto de tu relato y el tipo de acoso seleccionado.
+            </div>
+          </div>
+
+          <!-- FAQ 2 -->
+          <div class="faq-item">
+            <button type="button" class="faq-question" onclick="toggleFaq(this)">
+              <span>¿Por qué mi historia no aparece de inmediato en el feed?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              Para asegurar un ambiente libre de ciberacoso, mensajes de odio o divulgación de datos personales de terceros, todas las publicaciones pasan a un estado de <em>revisión pendiente</em> y son aprobadas por un moderador antes de ser visibles públicamente.
+            </div>
+          </div>
+
+          <!-- FAQ 3 -->
+          <div class="faq-item">
+            <button type="button" class="faq-question" onclick="toggleFaq(this)">
+              <span>¿Cómo puedo solicitar que retiren mi historia si me arrepiento?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              Puedes enviar un correo a <strong>contacto.espacioseguro@gmail.com</strong> indicando el título aproximado y la fecha de tu publicación, y el equipo la eliminará de la base de datos de manera definitiva.
+            </div>
+          </div>
+
+          <!-- FAQ 4 -->
+          <div class="faq-item">
+            <button type="button" class="faq-question" onclick="toggleFaq(this)">
+              <span>¿Este sitio sustituye la terapia o atención médica?</span>
+              <span class="faq-icon">▼</span>
+            </button>
+            <div class="faq-answer">
+              No. Este sitio es un espacio comunitario de concienciación y apoyo mutuo. Si estás experimentando una situación de riesgo inminente o crisis emocional severa, te recomendamos acudir directamente con un profesional de la salud o llamar a las líneas telefónicas gratuitas 24/7 listadas a continuación.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         8. SECCIÓN: RECURSOS DE AYUDA Y CRISIS 24/7 (Texto obligatorio exacto)
+         ========================================================================= -->
+    <section id="recursos-ayuda" class="resources-section" aria-labelledby="recursos-title">
+      <div class="container">
+        
+        <div class="section-badge" style="background-color: var(--color-crisis-bg); color: var(--color-crisis-text);">❤️ APOYO INMEDIATO Y GRATUITO</div>
+        <h2 id="recursos-title" class="section-title">Recursos de ayuda y contención</h2>
+        
+        <!-- Párrafo obligatorio exacto -->
+        <p class="section-desc" style="font-weight: 500; color: #374151; max-width: 900px; margin-bottom: 2rem;">
+          <strong>SI NECESITAS AYUDA AHORA.</strong> No estás solo/a. Estas líneas pueden ayudarte: 
+          Emergencias: 911. Línea de la Vida (atención psicológica y en crisis, 24 horas): 800 911 2000. 
+          SAPTEL (apoyo psicológico telefónico, 24 horas): 55 5259 8121. 
+          Locatel CDMX (orientación y apoyo emocional): 55 5658 1111. 
+          Hablar con alguien de confianza —un familiar, docente o profesional— también es un paso muy importante.
+        </p>
+
+        <div class="resources-grid">
+          
+          <div class="resource-card emergency-highlight">
+            <div>
+              <div class="resource-header">
+                <div class="resource-icon-box">🚨</div>
+                <h3 class="resource-name">Emergencias</h3>
+              </div>
+              <p class="resource-desc">Servicio nacional para situaciones de riesgo inminente a la vida o seguridad física.</p>
+            </div>
+            <a href="tel:911" class="resource-phone-btn">
+              📞 Marcar 911
+            </a>
+          </div>
+
+          <div class="resource-card">
+            <div>
+              <div class="resource-header">
+                <div class="resource-icon-box">🕊️</div>
+                <h3 class="resource-name">Línea de la Vida</h3>
+              </div>
+              <p class="resource-desc">Atención psicológica especializada y apoyo en situaciones de crisis emocional y prevención. 24 horas.</p>
+            </div>
+            <a href="tel:8009112000" class="resource-phone-btn">
+              📞 800 911 2000
+            </a>
+          </div>
+
+          <div class="resource-card">
+            <div>
+              <div class="resource-header">
+                <div class="resource-icon-box">🧠</div>
+                <h3 class="resource-name">SAPTEL</h3>
+              </div>
+              <p class="resource-desc">Sistema Nacional de Apoyo, Consejo Psicológico e Intervención en Crisis por Teléfono. 24 horas.</p>
+            </div>
+            <a href="tel:5552598121" class="resource-phone-btn">
+              📞 55 5259 8121
+            </a>
+          </div>
+
+          <div class="resource-card">
+            <div>
+              <div class="resource-header">
+                <div class="resource-icon-box">💬</div>
+                <h3 class="resource-name">Locatel CDMX</h3>
+              </div>
+              <p class="resource-desc">Orientación integral, asesoría legal y acompañamiento emocional continuo las 24 horas del día.</p>
+            </div>
+            <a href="tel:5556581111" class="resource-phone-btn">
+              📞 55 5658 1111
+            </a>
+          </div>
+
+        </div>
+
+        <div class="resources-footer-note">
+          <span class="note-icon">💡</span>
+          <div>
+            <strong>Recuerda:</strong> Hablar con alguien de confianza —un familiar, docente, consejero o profesional de la salud mental— 
+            es un paso valiente y transformador. Si estás en otro país, consulta los números de auxilio locales correspondientes.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         9. SECCIÓN: AVISO DE PRIVACIDAD (Texto obligatorio exacto)
+         ========================================================================= -->
+    <section id="privacidad" class="privacy-section" aria-labelledby="privacidad-title">
+      <div class="container">
+        <div class="privacy-card">
+          <div class="privacy-header">
+            <div class="privacy-icon">🛡️</div>
+            <h2 id="privacidad-title" class="privacy-title">Aviso de Privacidad y Compromiso Ético</h2>
+          </div>
+          
+          <!-- Texto de privacidad exacto requerido -->
+          <div class="privacy-text-content">
+            <p>
+              Este espacio existe para que puedas compartir tu experiencia de forma segura. 
+              Puedes publicar de forma completamente anónima. Si eliges esta opción, no se guarda 
+              ningún dato que te identifique. Si decides usar un nombre o alias, este solo se 
+              mostrará públicamente si tú lo autorizas expresamente. No vendemos, compartimos 
+              ni usamos tu información con fines comerciales ni publicitarios. Toda publicación 
+              pasa por una revisión antes de mostrarse, para evitar contenido de odio, insultos 
+              o datos personales de terceros. Puedes solicitar la eliminación de tu publicación 
+              en cualquier momento escribiendo a <strong>contacto.espacioseguro@gmail.com</strong>. 
+              Este sitio no sustituye la ayuda de un profesional. Si estás en una situación de 
+              riesgo o crisis, contacta con los servicios de emergencia o una línea de ayuda de tu país.
+            </p>
+
+            <div class="privacy-highlight-box">
+              🔒 <strong>Tu seguridad es lo primero:</strong> No publiques nombres completos de terceros, 
+              escuelas exactas, números telefónicos ni direcciones privadas en tu relato. Esto protege tu privacidad 
+              y asegura un espacio constructivo para todos.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================================
+       10. MODAL: FORMULARIO PARA AGREGAR ANÉCDOTA / EXPERIENCIA
+       ========================================================================= -->
+  <div id="storyModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="formStoryTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="formStoryTitle" class="modal-title">✍️ Compartir mi experiencia</h2>
+        <button id="btnCloseStoryModal" class="modal-close-btn" aria-label="Cerrar modal" onclick="closeStoryModal()">✕</button>
+      </div>
+
+      <form id="storyForm">
+        <div class="modal-body">
+          
+          <div class="form-notice-box">
+            <span>ℹ️</span>
+            <div>
+              <strong>Revisión previa de seguridad:</strong> Tu publicación quedará en estado <em>pendiente de revisión</em> 
+              y se publicará tras verificar que no contenga datos personales de terceros ni ofensas directas.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="inputTitulo" class="form-label">Título de tu experiencia *</label>
+            <input 
+              type="text" 
+              id="inputTitulo" 
+              name="titulo" 
+              class="form-control" 
+              placeholder="Ej: Aprendiendo a levantar la voz en la preparatoria..." 
+              required 
+              maxlength="150"
+            >
+            <span class="form-hint">Un resumen breve y respetuoso de lo sucedido.</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="selectTipoAcoso" class="form-label">Tipo de acoso *</label>
+              <select id="selectTipoAcoso" name="tipo_acoso" class="form-control" required>
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="escolar">🎒 Acoso Escolar (Bullying)</option>
+                <option value="laboral">💼 Acoso Laboral (Mobbing)</option>
+                <option value="cibernetico">💻 Ciberacoso (Cyberbullying)</option>
+                <option value="otro">🕊️ Otro tipo de acoso</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="inputFecha" class="form-label">Fecha aproximada *</label>
+              <input 
+                type="date" 
+                id="inputFecha" 
+                name="fecha" 
+                class="form-control" 
+                required
+              >
+              <span class="form-hint">Cuándo ocurrió aproximadamente.</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="textareaRelato" class="form-label">Tu relato o anécdota *</label>
+            <textarea 
+              id="textareaRelato" 
+              name="relato" 
+              class="form-control" 
+              placeholder="Escribe aquí con total libertad. ¿Qué sucedió? ¿Cómo te sentiste? ¿Cómo lograste afrontarlo o qué mensaje de aliento dejarías a otros?..." 
+              required 
+              minlength="20"
+              maxlength="5000"
+            ></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="form-hint">Recuerda omitir nombres reales completos y direcciones privadas.</span>
+              <span id="charCounter" class="char-counter">0 / 5000</span>
+            </div>
+          </div>
+
+          <div class="anon-toggle-container">
+            <label class="anon-checkbox-label">
+              <input type="checkbox" id="checkAnonimo" name="anonimo" checked>
+              <div>
+                <span>Publicar de forma ANÓNIMA (Recomendado)</span>
+                <span class="form-hint" style="color: var(--color-primary-dark); font-weight: normal; margin-top: 2px;">
+                  Tu nombre nunca será mostrado. La autoría aparecerá como "Testimonio Anónimo".
+                </span>
+              </div>
+            </label>
+
+            <div id="aliasWrapper" class="alias-input-wrapper">
+              <label for="inputAlias" class="form-label" style="font-size: 0.85rem;">Nombre público o alias deseado</label>
+              <input 
+                type="text" 
+                id="inputAlias" 
+                name="alias" 
+                class="form-control" 
+                placeholder="Ej: Sofía, Laura M., Alex..." 
+                maxlength="50"
+              >
+              <span class="form-hint">Solo se mostrará este seudónimo público. No uses tu nombre completo con apellidos.</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelStoryModal" class="btn btn-secondary" onclick="closeStoryModal()">Cancelar</button>
+          <button type="submit" id="btnSubmitStory" class="btn btn-primary">
+            <span>Enviar para revisión</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       11. MODAL: CONFIGURACIÓN RÁPIDA DE SUPABASE
+       ========================================================================= -->
+  <div id="configModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="configModalTitle">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h2 id="configModalTitle" class="modal-title">⚙️ Conexión con Supabase</h2>
+        <button id="btnCloseConfigModal" class="modal-close-btn" onclick="closeConfigModal()" aria-label="Cerrar modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
+          Conecta este sitio con tu base de datos de <strong>Supabase (PostgreSQL)</strong>.
+        </p>
+
+        <div class="form-group">
+          <label for="inputSupabaseUrl" class="form-label">Project URL (URL de Supabase)</label>
+          <input 
+            type="url" 
+            id="inputSupabaseUrl" 
+            class="form-control" 
+            placeholder="https://snvnosvrzicppqgncikk.supabase.co"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="inputSupabaseAnonKey" class="form-label">Anon / Public API Key</label>
+          <textarea 
+            id="inputSupabaseAnonKey" 
+            class="form-control" 
+            style="min-height: 80px; font-family: monospace; font-size: 0.8rem;" 
+            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="btnClearCredentials" class="btn btn-outline" style="margin-right: auto;">Usar Modo Local</button>
+        <button type="button" id="btnSaveCredentials" class="btn btn-primary">Guardar y Conectar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       12. BOTONES FLOTANTES DE ACCIÓN RÁPIDA
+       ========================================================================= -->
+  <div class="floating-actions-group">
+    <button id="btnFloatingShare" class="floating-share-btn" aria-label="Contar una experiencia" onclick="openStoryModal()">
+      ✍️ <span>Contar historia</span>
+    </button>
+    <a href="#recursos-ayuda" id="btnFloatingSOS" class="floating-sos-btn" aria-label="Líneas de ayuda urgente">
+      🚨 <span>Ayuda Urgente 24/7</span>
+    </a>
+  </div>
+
+  <!-- =========================================================================
+       13. CONTENEDOR DE TOASTS
+       ========================================================================= -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- =========================================================================
+       14. PIE DE PÁGINA
+       ========================================================================= -->
+  <footer id="footer" class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.3rem;">🌱</span>
+            <strong style="color: var(--color-primary-dark); font-size: 1.1rem;">Espacio Seguro</strong>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted);">
+            Plataforma comunitaria de concienciación y apoyo frente al acoso. 
+            Promovemos entornos libres de violencia, escucha activa y contención emocional.
+          </p>
+        </div>
+
+        <div class="footer-links-group">
+          <h4>Navegación</h4>
+          <a href="#inicio">Inicio</a>
+          <a href="#tipos-acoso">Tipos de Acoso</a>
+          <a href="#feed-section">Historias y Relatos</a>
+          <a href="#consejos">Protocolo de Ayuda</a>
+          <a href="#faq">Preguntas Frecuentes</a>
+          <a href="#recursos-ayuda">Líneas de Ayuda 24/7</a>
+          <a href="#privacidad">Aviso de Privacidad</a>
+          <a href="admin.html">Panel de Moderación</a>
+        </div>
+
+        <div class="footer-links-group">
+          <h4>Contacto y Retiro de Datos</h4>
+          <span style="font-size: 0.85rem; color: var(--color-text-muted);">Para solicitar retiro de publicaciones o dudas:</span>
+          <a href="mailto:contacto.espacioseguro@gmail.com" style="font-weight: 600;">contacto.espacioseguro@gmail.com</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2026 Espacio Seguro. Todos los derechos reservados. Sin fines comerciales.</span>
+        <span>Este sitio no sustituye el diagnóstico ni la terapia psicológica profesional.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts de la aplicación -->
+  <script src="supabase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

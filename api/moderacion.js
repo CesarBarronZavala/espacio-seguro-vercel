@@ -1,0 +1,87 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL || 'https://snvnosvrzicppqgncikk.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudm5vc3ZyemljcHBxZ25jaWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODExNDEsImV4cCI6MjEwMzg1NzE0MX0.FNglpiUoyHJMn9mt5_GeWxO-ehlr-guyFLyTY4wa5KM';
+const adminSecret = (process.env.ADMIN_SECRET_KEY || 'moderador2026').trim().toLowerCase();
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace('Bearer ', '').trim().toLowerCase();
+  const queryPin = (req.query.pin || '').trim().toLowerCase();
+
+  const isAuthorized = (token === adminSecret || queryPin === adminSecret);
+
+  if (!isAuthorized) {
+    return res.status(401).json({ success: false, error: 'Clave de moderador incorrecta o no proporcionada.' });
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const { data, error } = await supabase
+        .from('experiencias')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, data: data || [] });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.method === 'PUT') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const { id, estado } = body;
+
+      if (!id || !['pendiente', 'publicado', 'rechazado'].includes(estado)) {
+        return res.status(400).json({ success: false, error: 'Estado o ID inválido.' });
+      }
+
+      const { data, error } = await supabase
+        .from('experiencias')
+        .update({ estado })
+        .eq('id', id)
+        .select();
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, message: `Estado actualizado a ${estado}`, data });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const id = body.id || req.query.id;
+
+      if (!id) {
+        return res.status(400).json({ success: false, error: 'ID requerido para eliminar.' });
+      }
+
+      const { error } = await supabase
+        .from('experiencias')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, message: 'Registro eliminado definitivamente.' });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  return res.status(405).json({ success: false, error: 'Método no permitido' });
+}

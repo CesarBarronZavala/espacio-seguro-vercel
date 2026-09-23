@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Moderación | Espacio Seguro</title>
+  
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Estilos compartidos -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <style>
+    .admin-container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.25rem;
+    }
+    
+    .admin-header-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem 2rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .stat-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .stat-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-label {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      font-weight: 600;
+    }
+
+    .pending-card {
+      border-left: 4px solid #F59E0B;
+    }
+
+    .published-card {
+      border-left: 4px solid #10B981;
+    }
+
+    .rejected-card {
+      border-left: 4px solid #EF4444;
+    }
+
+    .admin-card-table {
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .admin-story-item {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.35rem;
+      margin-bottom: 1rem;
+      background-color: #FAFAFA;
+      transition: var(--transition);
+    }
+
+    .admin-story-item:hover {
+      background-color: #FFFFFF;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .admin-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-item-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--color-text-main);
+    }
+
+    .admin-item-text {
+      background: #FFFFFF;
+      border: 1px solid #ECEAE5;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: #334155;
+      margin-bottom: 1rem;
+      white-space: pre-line;
+    }
+
+    .admin-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-approve {
+      background-color: #10B981;
+      color: #FFFFFF;
+    }
+
+    .btn-approve:hover {
+      background-color: #059669;
+      color: #FFFFFF;
+    }
+
+    .btn-reject {
+      background-color: #EF4444;
+      color: #FFFFFF;
+    }
+
+    .btn-reject:hover {
+      background-color: #DC2626;
+      color: #FFFFFF;
+    }
+
+    .auth-overlay {
+      max-width: 440px;
+      margin: 4rem auto;
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2.25rem;
+      box-shadow: var(--shadow-md);
+      text-align: center;
+    }
+  </style>
+
+  <!-- Supabase JS Client v2 (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    function checkAdminLogin(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var pinInput = document.getElementById('adminPin');
+      var val = pinInput ? pinInput.value.trim().toLowerCase() : '';
+      if (val === 'moderador2026') {
+        try {
+          if (window.sessionStorage) window.sessionStorage.setItem('espacio_seguro_admin_auth', 'true');
+          if (window.localStorage) window.localStorage.setItem('espacio_seguro_admin_auth', 'true');
+        } catch(err){}
+        var authSection = document.getElementById('authSection');
+        var mainContent = document.getElementById('adminMainContent');
+        if (authSection) authSection.style.display = 'none';
+        if (mainContent) mainContent.style.display = 'block';
+        if (typeof initDatabase === 'function') initDatabase();
+        if (typeof loadAdminData === 'function') loadAdminData();
+        if (typeof showToast === 'function') showToast('Sesión de moderación iniciada con éxito.', 'success');
+        return false;
+      } else {
+        alert('Clave incorrecta. La clave de moderador es: moderador2026');
+        if (pinInput) { pinInput.value = ''; pinInput.focus(); }
+        return false;
+      }
+    }
+  </script>
+
+</head>
+<body>
+
+  <!-- Cabecera -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon-wrapper">🛡️</div>
+        <div>
+          <span class="brand-title">Panel de Moderación</span>
+          <span class="brand-subtitle">Espacio Seguro • Revisión ética de testimonios</span>
+        </div>
+      </a>
+      
+      <div class="header-actions">
+        <a href="index.html" class="btn btn-secondary btn-sm">
+          ← Volver a la página principal
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Vista protegida por PIN de moderación -->
+  <div id="authSection" class="auth-overlay">
+    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔒</div>
+    <h2 style="font-size: 1.35rem; margin-bottom: 0.5rem; color: var(--color-primary-dark);">Acceso de Moderador</h2>
+    <p style="font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 1.5rem;">
+      Ingresa la clave de moderación para revisar y publicar los testimonios.
+    </p>
+
+    <form id="adminAuthForm" onsubmit="return checkAdminLogin(event);">
+      <div class="form-group" style="text-align: left;">
+        <label for="adminPin" class="form-label">Clave de moderador</label>
+        <input 
+          type="password" 
+          id="adminPin" 
+          class="form-control" 
+          placeholder="Ingresa la clave..." 
+          required 
+          autocomplete="current-password"
+        >
+        <span class="form-hint">Clave por defecto: <code>moderador2026</code></span>
+      </div>
+
+      <button type="submit" id="btnSubmitPin" class="btn btn-primary" style="width: 100%;">
+        Desbloquear Panel
+      </button>
+    </form>
+  </div>
+
+  <!-- Contenido del Panel de Moderación (Oculto hasta autenticarse) -->
+  <main id="adminMainContent" class="admin-container" style="display: none;">
+    
+    <div class="admin-header-card">
+      <div>
+        <h1 style="font-size: 1.5rem; color: var(--color-text-main); margin-bottom: 0.35rem;">
+          Control y Aprobación de Testimonios
+        </h1>
+        <p style="font-size: 0.88rem; color: var(--color-text-muted); margin: 0;">
+          Revisa que los relatos no contengan discursos de odio, difamaciones directas ni datos personales identificables.
+        </p>
+      </div>
+      
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="btnRefreshAdmin" class="btn btn-secondary btn-sm">
+          🔄 Actualizar
+        </button>
+        <button id="btnLogoutAdmin" class="btn btn-outline btn-sm">
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+
+    <!-- Tarjetas de Estadísticas -->
+    <div class="admin-stats-grid">
+      <div class="stat-card pending-card">
+        <div class="stat-icon-box" style="background: #FEF3C7; color: #B45309;">⏳</div>
+        <div>
+          <div id="statPendingCount" class="stat-val">0</div>
+          <div class="stat-label">Pendientes de revisión</div>
+        </div>
+      </div>
+
+      <div class="stat-card published-card">
+        <div class="stat-icon-box" style="background: #D1FAE5; color: #059669;">✅</div>
+        <div>
+          <div id="statPublishedCount" class="stat-val">0</div>
+          <div class="stat-label">Publicados en el feed</div>
+        </div>
+      </div>
+
+      <div class="stat-card rejected-card">
+        <div class="stat-icon-box" style="background: #FEE2E2; color: #DC2626;">🗑️</div>
+        <div>
+          <div id="statRejectedCount" class="stat-val">0</div>
+          <div class="stat-label">Rechazados / Eliminados</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestañas de estado -->
+    <div class="admin-card-table">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.8rem;">
+        <div class="filter-pills">
+          <button class="filter-pill active" data-tab="pendiente">
+            ⏳ Pendientes (<span id="tabCountPending">0</span>)
+          </button>
+          <button class="filter-pill" data-tab="publicado">
+            ✅ Publicados (<span id="tabCountPublished">0</span>)
+          </button>
+          <button class="filter-pill" data-tab="rechazado">
+            🗑️ Rechazados (<span id="tabCountRejected">0</span>)
+          </button>
+        </div>
+
+        <span id="adminSourceBadge" style="font-size: 0.82rem; color: var(--color-primary); font-weight: 600;">
+          Cargando origen de datos...
+        </span>
+      </div>
+
+      <!-- Lista de relatos para moderar -->
+      <div id="adminListContainer">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>Cargando registros...</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Contenedor de Notificaciones Toast -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="supabase-config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
