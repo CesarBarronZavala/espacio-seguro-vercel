@@ -316,7 +316,8 @@ function showToast(message, type = 'info') {
 
 // Control de Acceso por PIN
 function checkAdminAuth() {
-  const isAuth = safeSession.getItem(ADMIN_PIN_STORAGE_KEY) === 'true';
+  const isAuth = (safeSession.getItem(ADMIN_PIN_STORAGE_KEY) === 'true') ||
+                 (safeStorage.getItem(ADMIN_PIN_STORAGE_KEY) === 'true');
   const authSection = document.getElementById('authSection');
   const mainContent = document.getElementById('adminMainContent');
 
@@ -339,13 +340,14 @@ document.addEventListener('DOMContentLoaded', () => {
     pinForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const pinInput = document.getElementById('adminPin');
-      const val = pinInput ? pinInput.value.trim() : '';
+      const val = pinInput ? pinInput.value.trim().toLowerCase() : '';
       if (val === DEFAULT_PIN) {
         safeSession.setItem(ADMIN_PIN_STORAGE_KEY, 'true');
+        safeStorage.setItem(ADMIN_PIN_STORAGE_KEY, 'true');
         checkAdminAuth();
         showToast('Sesión de moderación iniciada con éxito.', 'success');
       } else {
-        showToast('PIN de acceso incorrecto.', 'error');
+        showToast('Clave de acceso incorrecta.', 'error');
         if (pinInput) {
           pinInput.value = '';
           pinInput.focus();
@@ -370,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
       safeSession.removeItem(ADMIN_PIN_STORAGE_KEY);
+      safeStorage.removeItem(ADMIN_PIN_STORAGE_KEY);
       location.reload();
     });
   }

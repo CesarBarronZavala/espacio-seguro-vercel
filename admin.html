@@ -12,14 +12,6 @@
   
   <!-- Estilos compartidos -->
   <link rel="stylesheet" href="styles.css">
-  
-  <!-- Supabase JS Client v2 (CDN) con fallback automático -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    if (!window.supabase && typeof supabase === 'undefined') {
-      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
-    }
-  </script>
 
   <style>
     .admin-container {
@@ -182,6 +174,36 @@
     }
   </style>
 
+  <!-- Función inmediata de autenticación garantizada -->
+  <script>
+    function handleAdminLoginSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var pinInput = document.getElementById('adminPin');
+      var val = pinInput ? pinInput.value.trim().toLowerCase() : '';
+      if (val === 'moderador2026') {
+        try {
+          if (window.sessionStorage) window.sessionStorage.setItem('espacio_seguro_admin_auth', 'true');
+          if (window.localStorage) window.localStorage.setItem('espacio_seguro_admin_auth', 'true');
+        } catch(err){}
+        var authSection = document.getElementById('authSection');
+        var mainContent = document.getElementById('adminMainContent');
+        if (authSection) authSection.style.display = 'none';
+        if (mainContent) mainContent.style.display = 'block';
+        if (typeof loadAdminData === 'function') {
+          loadAdminData();
+        }
+        if (typeof showToast === 'function') {
+          showToast('Sesión de moderación iniciada con éxito.', 'success');
+        }
+        return false;
+      } else {
+        alert('Clave incorrecta. Por favor ingresa: moderador2026');
+        if (pinInput) { pinInput.value = ''; pinInput.focus(); }
+        return false;
+      }
+    }
+  </script>
+
 </head>
 <body>
 
@@ -212,7 +234,7 @@
       Ingresa la clave de moderación para revisar y publicar los testimonios.
     </p>
 
-    <form id="adminAuthForm">
+    <form id="adminAuthForm" onsubmit="return handleAdminLoginSubmit(event);">
       <div class="form-group" style="text-align: left;">
         <label for="adminPin" class="form-label">Clave de moderador</label>
         <input 
@@ -226,7 +248,7 @@
         <span class="form-hint">Clave por defecto: <code>moderador2026</code></span>
       </div>
 
-      <button type="submit" id="btnSubmitPin" class="btn btn-primary" style="width: 100%;">
+      <button type="submit" id="btnSubmitPin" class="btn btn-primary" style="width: 100%;" onclick="return handleAdminLoginSubmit(event);">
         Desbloquear Panel
       </button>
     </form>
