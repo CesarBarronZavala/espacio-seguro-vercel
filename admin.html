@@ -13,6 +13,14 @@
   <!-- Estilos compartidos -->
   <link rel="stylesheet" href="styles.css">
   
+  <!-- Supabase JS Client v2 (CDN) con fallback automático -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    if (!window.supabase && typeof supabase === 'undefined') {
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
+    }
+  </script>
+
   <style>
     .admin-container {
       max-width: 1100px;
@@ -174,36 +182,6 @@
     }
   </style>
 
-
-  <script>
-    // Solo guarda la sesión y muestra/oculta las secciones.
-    // initDatabase() y loadAdminData() son llamados por admin.js en DOMContentLoaded.
-    function checkAdminLogin(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      var pinInput = document.getElementById('adminPin');
-      var val = pinInput ? pinInput.value.trim() : '';
-      if (val === 'moderador2026') {
-        try {
-          if (window.sessionStorage) window.sessionStorage.setItem('espacio_seguro_admin_auth', 'true');
-        } catch(err){}
-        // Mostrar panel directamente
-        var authSection = document.getElementById('authSection');
-        var mainContent = document.getElementById('adminMainContent');
-        if (authSection) authSection.style.display = 'none';
-        if (mainContent) mainContent.style.display = 'block';
-        // admin.js ya estará cargado cuando el usuario hace click (DOM listo)
-        if (typeof initDatabase === 'function') initDatabase();
-        if (typeof loadAdminData === 'function') loadAdminData();
-        if (typeof showToast === 'function') showToast('Sesión de moderación iniciada con éxito.', 'success');
-        return false;
-      } else {
-        alert('Clave incorrecta.');
-        if (pinInput) { pinInput.value = ''; pinInput.focus(); }
-        return false;
-      }
-    }
-  </script>
-
 </head>
 <body>
 
@@ -234,7 +212,7 @@
       Ingresa la clave de moderación para revisar y publicar los testimonios.
     </p>
 
-    <form id="adminAuthForm" onsubmit="return checkAdminLogin(event);">
+    <form id="adminAuthForm">
       <div class="form-group" style="text-align: left;">
         <label for="adminPin" class="form-label">Clave de moderador</label>
         <input 
@@ -338,8 +316,7 @@
   <!-- Contenedor de Notificaciones Toast -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Scripts en orden correcto: Supabase → Config → Admin -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Scripts en orden correcto -->
   <script src="supabase-config.js"></script>
   <script src="admin.js"></script>
 </body>

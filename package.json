@@ -1,12 +1,11 @@
 {
   "name": "espacio-seguro-vercel",
   "version": "1.0.0",
-  "description": "Plataforma de concienciación y apoyo contra el acoso - Vercel Serverless Architecture",
+  "description": "Plataforma de concienciación y apoyo contra el acoso - Vercel Serverless",
   "main": "index.html",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'Build OK'"
+    "dev": "vercel dev"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0"

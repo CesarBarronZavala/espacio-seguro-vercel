@@ -89,52 +89,43 @@ let activeFilter = 'todos';
 let searchQuery = '';
 let isUsingSupabase = false;
 
+function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+  const config = window.SUPABASE_CONFIG;
+  const sbLib = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+  if (config && config.isConfigured() && sbLib && typeof sbLib.createClient === 'function') {
+    try {
+      supabaseClient = sbLib.createClient(config.url, config.anonKey);
+      isUsingSupabase = true;
+      return supabaseClient;
+    } catch (err) {
+      console.warn('Error inicializando SupabaseClient:', err);
+    }
+  }
+  return null;
+}
+
 // =========================================================================
 // 3. INICIALIZACIÓN
 // =========================================================================
 function initDatabase() {
-  const config = window.SUPABASE_CONFIG;
   const statusBanner = document.getElementById('dbStatusBanner');
   const statusIcon = document.getElementById('dbStatusIcon');
   const statusText = document.getElementById('dbStatusText');
-
-  // Detectar si se está abriendo desde file:// (causa problemas de CORS con Supabase)
   const isFileProtocol = window.location.protocol === 'file:';
 
-  if (config && config.isConfigured() && window.supabase) {
-    try {
-      supabaseClient = window.supabase.createClient(config.url, config.anonKey);
-      isUsingSupabase = true;
-
-      if (statusBanner) {
-        statusBanner.style.display = 'flex';
-
-        if (isFileProtocol) {
-          // Advertir que file:// puede bloquear peticiones de red
-          statusBanner.className = 'db-status-banner warning';
-          statusIcon.textContent = '⚠️';
-          statusText.innerHTML =
-            '<strong>Supabase configurado</strong>, pero abriste el archivo directo desde tu PC (<code>file://</code>). ' +
-            'Para que funcione correctamente, <strong>usa el servidor local</strong>: ejecuta <code>iniciar-servidor.bat</code> y abre <code>http://localhost:8080</code> en tu navegador.';
-        } else {
-          statusBanner.className = 'db-status-banner connected';
-          statusIcon.textContent = '🟢';
-          statusText.innerHTML = 'Conectado a <strong>Supabase (PostgreSQL)</strong>.';
-        }
-      }
-    } catch (err) {
-      console.error('Error inicializando Supabase:', err);
-      isUsingSupabase = false;
-    }
-  } else {
-    isUsingSupabase = false;
-    if (statusBanner) {
-      statusBanner.style.display = 'flex';
-      statusBanner.className = 'db-status-banner';
-      statusIcon.textContent = '💡';
+  if (statusBanner) {
+    statusBanner.style.display = 'flex';
+    if (isFileProtocol) {
+      statusBanner.className = 'db-status-banner warning';
+      statusIcon.textContent = '⚠️';
       statusText.innerHTML =
-        'Operando en <strong>Modo Local</strong> (sin Supabase). Los testimonios se guardarán solo en este dispositivo.' +
-        ' <button onclick="openConfigModal()" style="background:none;border:none;color:var(--color-primary-dark);font-weight:600;cursor:pointer;text-decoration:underline;padding:0;">Configurar Supabase</button>';
+        '<strong>Abierto en modo archivo (<code>file://</code>)</strong>. ' +
+        'Para conectar con la base de datos sin bloqueos del navegador, ejecuta <code>iniciar-servidor.bat</code> o abre tu enlace de Vercel.';
+    } else {
+      statusBanner.className = 'db-status-banner connected';
+      statusIcon.textContent = '🟢';
+      statusText.innerHTML = 'Conectado a <strong>Supabase (PostgreSQL)</strong>.';
     }
   }
 }
@@ -144,29 +135,15 @@ function initDatabase() {
 // =========================================================================
 async function fetchPublishedStories() {
   renderFeed();
-  if (!isUsingSupabase || !supabaseClient) return;
+  let fetchedData = null;
 
-  try {
-    const fetchPromise = supabaseClient
-      .from('experiencias')
-      .select('*')
-      .eq('estado', 'publicado')
-      .order('created_at', { ascending: false });
+  if (window.SupabaseAPI) {
+    fetchedData = await window.SupabaseAPI.getPublishedStories();
+  }
 
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout Supabase')), 5000)
-    );
-
-    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
-
-    if (error) {
-      console.warn('Error al cargar testimonios de Supabase:', error.message, error);
-    } else if (Array.isArray(data) && data.length > 0) {
-      allPublishedStories = data;
-      renderFeed();
-    }
-  } catch (err) {
-    console.log('Usando datos locales de respaldo. Error Supabase:', err.message);
+  if (Array.isArray(fetchedData)) {
+    allPublishedStories = fetchedData;
+    renderFeed();
   }
 }
 
@@ -331,30 +308,16 @@ async function handleStorySubmit(e) {
   };
 
   let supabaseOk = false;
-  let supabaseErrorMsg = null;
 
-  // 1. Intentar guardar en Supabase
-  if (isUsingSupabase && supabaseClient) {
-    try {
-      const { data, error } = await supabaseClient
-        .from('experiencias')
-        .insert([newStoryPayload])
-        .select(); // .select() para confirmar que se guardó
-
-      if (error) {
-        supabaseErrorMsg = error.message || JSON.stringify(error);
-        console.error('Error Supabase al insertar:', error);
-      } else {
-        supabaseOk = true;
-        console.log('Testimonio guardado en Supabase:', data);
-      }
-    } catch (err) {
-      supabaseErrorMsg = err.message || String(err);
-      console.error('Excepción al insertar en Supabase:', err);
+  // 1. Guardar en Supabase mediante SupabaseAPI
+  if (window.SupabaseAPI) {
+    const res = await window.SupabaseAPI.insertStory(newStoryPayload);
+    if (res && res.success) {
+      supabaseOk = true;
     }
   }
 
-  // 2. Siempre guardar localmente como respaldo
+  // 2. Guardar localmente como respaldo
   try {
     const local = getLocalStories();
     const newLocalStory = {
@@ -377,35 +340,23 @@ async function handleStorySubmit(e) {
   closeStoryModal();
 
   // 4. Mostrar mensaje adecuado según resultado
-  if (isUsingSupabase && !supabaseOk) {
-    // Supabase configurado pero falló
-    const isFileProtocol = window.location.protocol === 'file:';
-    if (isFileProtocol) {
+  if (supabaseOk) {
+    showToast(
+      '¡Gracias por tu valentía! Tu experiencia ha sido recibida con respeto y guardada en la base de datos. Pasará por una breve moderación antes de publicarse.',
+      'success', 8000
+    );
+  } else {
+    if (window.location.protocol === 'file:') {
       showToast(
-        '⚠️ Tu historia se guardó localmente, pero no pudo enviarse a la base de datos porque estás abriendo el archivo directamente. ' +
-        'Usa el servidor local (iniciar-servidor.bat) para que funcione.',
+        '⚠️ Tu historia se guardó en este dispositivo. Para sincronizar con Supabase en tu PC, ejecuta iniciar-servidor.bat o ábrelo en Vercel.',
         'error', 9000
       );
     } else {
       showToast(
-        '⚠️ No se pudo guardar en Supabase: ' + (supabaseErrorMsg || 'error desconocido') +
-        '. Verifica que ejecutaste el schema.sql en Supabase y que las políticas RLS están activas.',
-        'error', 10000
+        '¡Gracias por compartir! Tu experiencia se guardó localmente en este dispositivo.',
+        'info', 7000
       );
     }
-  } else if (supabaseOk) {
-    showToast(
-      '¡Gracias por tu valentía! Tu experiencia ha sido recibida con respeto y enviada a la base de datos. ' +
-      'Pasará por una breve revisión antes de publicarse.',
-      'success', 8000
-    );
-  } else {
-    // Modo local
-    showToast(
-      '¡Gracias por compartir! Tu experiencia se guardó en este dispositivo. ' +
-      'Configura Supabase (⚙️) para que quede en la base de datos compartida.',
-      'info', 7000
-    );
   }
 
   submitBtn.disabled = false;
@@ -435,15 +386,8 @@ async function toggleEmpathy(storyId) {
     saveLocalStories(local);
   }
 
-  if (isUsingSupabase && supabaseClient) {
-    try {
-      await supabaseClient
-        .from('experiencias')
-        .update({ apoyos_count: newCount })
-        .eq('id', storyId);
-    } catch (e) {
-      console.warn('Error sincronizando apoyo con Supabase:', e);
-    }
+  if (window.SupabaseAPI) {
+    await window.SupabaseAPI.updateApoyos(storyId, newCount);
   }
 }
 
