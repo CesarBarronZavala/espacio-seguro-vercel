@@ -49,6 +49,53 @@ function saveLocalStories(stories) {
   safeStorage.setItem(DEMO_EXPERIENCIAS_KEY, JSON.stringify(stories));
 }
 
+// Desbloqueo garantizado
+function unlockAdminPanel() {
+  const pinInput = document.getElementById('adminPin');
+  const val = pinInput ? pinInput.value.trim().toLowerCase() : '';
+  if (val === DEFAULT_PIN) {
+    safeSession.setItem(ADMIN_PIN_STORAGE_KEY, 'true');
+    safeStorage.setItem(ADMIN_PIN_STORAGE_KEY, 'true');
+    
+    const authSection = document.getElementById('authSection');
+    const mainContent = document.getElementById('adminMainContent');
+    if (authSection) authSection.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'block';
+    
+    loadAdminData();
+    showToast('Sesión de moderación iniciada con éxito.', 'success');
+  } else {
+    showToast('Clave incorrecta. Usa: moderador2026', 'error');
+    alert('Clave incorrecta. Por favor ingresa: moderador2026');
+    if (pinInput) {
+      pinInput.value = '';
+      pinInput.focus();
+    }
+  }
+}
+
+function logoutAdmin() {
+  safeSession.removeItem(ADMIN_PIN_STORAGE_KEY);
+  safeStorage.removeItem(ADMIN_PIN_STORAGE_KEY);
+  location.reload();
+}
+
+function checkAdminAuth() {
+  const isAuth = (safeSession.getItem(ADMIN_PIN_STORAGE_KEY) === 'true') ||
+                 (safeStorage.getItem(ADMIN_PIN_STORAGE_KEY) === 'true');
+  const authSection = document.getElementById('authSection');
+  const mainContent = document.getElementById('adminMainContent');
+
+  if (isAuth) {
+    if (authSection) authSection.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'block';
+    loadAdminData();
+  } else {
+    if (authSection) authSection.style.display = 'block';
+    if (mainContent) mainContent.style.display = 'none';
+  }
+}
+
 async function loadAdminData() {
   const listContainer = document.getElementById('adminListContainer');
   const sourceBadge = document.getElementById('adminSourceBadge');
@@ -73,16 +120,10 @@ async function loadAdminData() {
       sourceBadge.innerHTML = '🟢 Origen: <strong>Supabase (PostgreSQL)</strong>';
     }
   } else {
-    // Si no se pudo conectar, usar respaldo local
     if (sourceBadge) {
       sourceBadge.innerHTML = '💡 Origen: <strong>Modo Local</strong>';
     }
     allStories = getLocalStories();
-    
-    // Alerta de protocolo file:// si aplica
-    if (window.location.protocol === 'file:') {
-      showToast('⚠️ Estás abriendo el archivo como file://. Usa iniciar-servidor.bat para conectar con Supabase sin bloqueos.', 'error');
-    }
   }
 
   updateStats();
@@ -124,6 +165,7 @@ function escapeHtml(text) {
 }
 
 function switchAdminTab(tabName) {
+  currentTab = tabName;
   const tabs = document.querySelectorAll('.filter-pill[data-tab]');
   tabs.forEach(t => {
     if (t.getAttribute('data-tab') === tabName) {
@@ -132,10 +174,8 @@ function switchAdminTab(tabName) {
       t.classList.remove('active');
     }
   });
-  currentTab = tabName;
   renderMainView();
 }
-window.switchAdminTab = switchAdminTab;
 
 function renderMainView() {
   const listContainer = document.getElementById('adminListContainer');
@@ -314,80 +354,14 @@ function showToast(message, type = 'info') {
   }, 4000);
 }
 
-// Control de Acceso por PIN
-function checkAdminAuth() {
-  const isAuth = (safeSession.getItem(ADMIN_PIN_STORAGE_KEY) === 'true') ||
-                 (safeStorage.getItem(ADMIN_PIN_STORAGE_KEY) === 'true');
-  const authSection = document.getElementById('authSection');
-  const mainContent = document.getElementById('adminMainContent');
-
-  if (isAuth) {
-    if (authSection) authSection.style.display = 'none';
-    if (mainContent) mainContent.style.display = 'block';
-    loadAdminData();
-  } else {
-    if (authSection) authSection.style.display = 'block';
-    if (mainContent) mainContent.style.display = 'none';
-  }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   checkAdminAuth();
-
-  // Formulario de autenticación por PIN
-  const pinForm = document.getElementById('adminAuthForm');
-  if (pinForm) {
-    pinForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const pinInput = document.getElementById('adminPin');
-      const val = pinInput ? pinInput.value.trim().toLowerCase() : '';
-      if (val === DEFAULT_PIN) {
-        safeSession.setItem(ADMIN_PIN_STORAGE_KEY, 'true');
-        safeStorage.setItem(ADMIN_PIN_STORAGE_KEY, 'true');
-        checkAdminAuth();
-        showToast('Sesión de moderación iniciada con éxito.', 'success');
-      } else {
-        showToast('Clave de acceso incorrecta.', 'error');
-        if (pinInput) {
-          pinInput.value = '';
-          pinInput.focus();
-        }
-      }
-    });
-  }
-
-  // Pestañas de estado (Pendientes, Publicados, Rechazados)
-  const tabs = document.querySelectorAll('.filter-pill[data-tab]');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentTab = tab.getAttribute('data-tab');
-      renderMainView();
-    });
-  });
-
-  // Botón cerrar sesión
-  const btnLogout = document.getElementById('btnLogoutAdmin');
-  if (btnLogout) {
-    btnLogout.addEventListener('click', () => {
-      safeSession.removeItem(ADMIN_PIN_STORAGE_KEY);
-      safeStorage.removeItem(ADMIN_PIN_STORAGE_KEY);
-      location.reload();
-    });
-  }
-
-  // Botón recargar
-  const btnRefresh = document.getElementById('btnRefreshAdmin');
-  if (btnRefresh) {
-    btnRefresh.addEventListener('click', () => {
-      loadAdminData();
-      showToast('Sincronizando con la base de datos...', 'info');
-    });
-  }
 });
 
 // Exposición global
+window.unlockAdminPanel = unlockAdminPanel;
+window.logoutAdmin = logoutAdmin;
+window.switchAdminTab = switchAdminTab;
 window.updateStoryStatus = updateStoryStatus;
 window.deleteStory = deleteStory;
 window.loadAdminData = loadAdminData;

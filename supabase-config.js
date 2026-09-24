@@ -71,11 +71,12 @@ window.SupabaseAPI = {
       const url = `${window.SUPABASE_CONFIG.url}/rest/v1/experiencias?estado=eq.publicado&select=*&order=created_at.desc`;
       const res = await fetch(url, { method: 'GET', headers: this.getHeaders() });
       if (res.ok) {
-        const data = await res.json();
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : [];
         if (Array.isArray(data)) return data;
       }
     } catch (err) {
-      console.warn('Fallo en consulta directa REST Supabase:', err);
+      console.warn('Fallo en consulta directa REST Supabase getPublishedStories:', err);
     }
 
     // 2. Intentar vía API de Vercel
@@ -103,7 +104,8 @@ window.SupabaseAPI = {
       const url = `${window.SUPABASE_CONFIG.url}/rest/v1/experiencias?select=*&order=created_at.desc`;
       const res = await fetch(url, { method: 'GET', headers: this.getHeaders() });
       if (res.ok) {
-        const data = await res.json();
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : [];
         if (Array.isArray(data)) return data;
       }
     } catch (err) {
@@ -141,7 +143,11 @@ window.SupabaseAPI = {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        const data = await res.json();
+        let data = null;
+        try {
+          const text = await res.text();
+          data = text ? JSON.parse(text) : null;
+        } catch (e) {}
         return { success: true, data: Array.isArray(data) ? data[0] : data };
       } else {
         const errText = await res.text();

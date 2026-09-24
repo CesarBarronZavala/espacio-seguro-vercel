@@ -174,36 +174,6 @@
     }
   </style>
 
-  <!-- Función inmediata de autenticación garantizada -->
-  <script>
-    function handleAdminLoginSubmit(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      var pinInput = document.getElementById('adminPin');
-      var val = pinInput ? pinInput.value.trim().toLowerCase() : '';
-      if (val === 'moderador2026') {
-        try {
-          if (window.sessionStorage) window.sessionStorage.setItem('espacio_seguro_admin_auth', 'true');
-          if (window.localStorage) window.localStorage.setItem('espacio_seguro_admin_auth', 'true');
-        } catch(err){}
-        var authSection = document.getElementById('authSection');
-        var mainContent = document.getElementById('adminMainContent');
-        if (authSection) authSection.style.display = 'none';
-        if (mainContent) mainContent.style.display = 'block';
-        if (typeof loadAdminData === 'function') {
-          loadAdminData();
-        }
-        if (typeof showToast === 'function') {
-          showToast('Sesión de moderación iniciada con éxito.', 'success');
-        }
-        return false;
-      } else {
-        alert('Clave incorrecta. Por favor ingresa: moderador2026');
-        if (pinInput) { pinInput.value = ''; pinInput.focus(); }
-        return false;
-      }
-    }
-  </script>
-
 </head>
 <body>
 
@@ -226,7 +196,7 @@
     </div>
   </header>
 
-  <!-- Vista protegida por PIN de moderación -->
+  <!-- Vista protegida por PIN de moderación (sin form submit para evitar recargas accidentales) -->
   <div id="authSection" class="auth-overlay">
     <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔒</div>
     <h2 style="font-size: 1.35rem; margin-bottom: 0.5rem; color: var(--color-primary-dark);">Acceso de Moderador</h2>
@@ -234,24 +204,24 @@
       Ingresa la clave de moderación para revisar y publicar los testimonios.
     </p>
 
-    <form id="adminAuthForm" onsubmit="return handleAdminLoginSubmit(event);">
-      <div class="form-group" style="text-align: left;">
+    <div style="text-align: left;">
+      <div class="form-group">
         <label for="adminPin" class="form-label">Clave de moderador</label>
         <input 
           type="password" 
           id="adminPin" 
           class="form-control" 
           placeholder="Ingresa la clave..." 
-          required 
           autocomplete="current-password"
+          onkeydown="if(event.key === 'Enter') unlockAdminPanel();"
         >
         <span class="form-hint">Clave por defecto: <code>moderador2026</code></span>
       </div>
 
-      <button type="submit" id="btnSubmitPin" class="btn btn-primary" style="width: 100%;" onclick="return handleAdminLoginSubmit(event);">
+      <button type="button" id="btnSubmitPin" class="btn btn-primary" style="width: 100%;" onclick="unlockAdminPanel();">
         Desbloquear Panel
       </button>
-    </form>
+    </div>
   </div>
 
   <!-- Contenido del Panel de Moderación (Oculto hasta autenticarse) -->
@@ -268,10 +238,10 @@
       </div>
       
       <div style="display: flex; gap: 0.5rem;">
-        <button id="btnRefreshAdmin" class="btn btn-secondary btn-sm">
+        <button id="btnRefreshAdmin" class="btn btn-secondary btn-sm" onclick="loadAdminData(); showToast('Sincronizando...', 'info');">
           🔄 Actualizar
         </button>
-        <button id="btnLogoutAdmin" class="btn btn-outline btn-sm">
+        <button id="btnLogoutAdmin" class="btn btn-outline btn-sm" onclick="logoutAdmin();">
           Cerrar Sesión
         </button>
       </div>
@@ -308,13 +278,13 @@
     <div class="admin-card-table">
       <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.8rem;">
         <div class="filter-pills">
-          <button class="filter-pill active" data-tab="pendiente">
+          <button class="filter-pill active" data-tab="pendiente" onclick="switchAdminTab('pendiente');">
             ⏳ Pendientes (<span id="tabCountPending">0</span>)
           </button>
-          <button class="filter-pill" data-tab="publicado">
+          <button class="filter-pill" data-tab="publicado" onclick="switchAdminTab('publicado');">
             ✅ Publicados (<span id="tabCountPublished">0</span>)
           </button>
-          <button class="filter-pill" data-tab="rechazado">
+          <button class="filter-pill" data-tab="rechazado" onclick="switchAdminTab('rechazado');">
             🗑️ Rechazados (<span id="tabCountRejected">0</span>)
           </button>
         </div>
