@@ -54,6 +54,9 @@ export default async function handler(req, res) {
         headers: getHeaders()
       });
       const data = await response.json();
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Supabase respondió con error', detail: data });
+      }
       return res.status(200).json({ success: true, data: Array.isArray(data) ? data : [] });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
@@ -69,11 +72,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Estado o ID inválido.' });
       }
 
-      await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
+      const response = await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
         method: 'PATCH',
         headers: getHeaders(),
         body: JSON.stringify({ estado })
       });
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Supabase rechazó la actualización' });
+      }
 
       return res.status(200).json({ success: true, message: `Estado actualizado a ${estado}` });
     } catch (err) {
@@ -90,10 +96,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'ID requerido para eliminar.' });
       }
 
-      await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
+      const response = await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
         method: 'DELETE',
         headers: getHeaders()
       });
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Supabase rechazó la eliminación' });
+      }
 
       return res.status(200).json({ success: true, message: 'Registro eliminado definitivamente.' });
     } catch (err) {

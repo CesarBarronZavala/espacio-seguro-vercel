@@ -1,3 +1,4 @@
+(function () {
 /**
  * Configuración y Servicio de Supabase para Espacio Seguro
  * Utiliza llamadas REST directas nativas (PostgREST) + Fallback a Serverless API y Fallback Local
@@ -277,3 +278,4 @@ window.SupabaseAPI = {
     return { success: false };
   }
 };
+})();

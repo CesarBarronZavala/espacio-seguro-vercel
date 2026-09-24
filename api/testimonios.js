@@ -44,6 +44,9 @@ export default async function handler(req, res) {
         headers: getHeaders()
       });
       const data = await response.json();
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Supabase respondió con error', detail: data });
+      }
       return res.status(200).json({ success: true, data: Array.isArray(data) ? data : [] });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
@@ -81,6 +84,10 @@ export default async function handler(req, res) {
       let data = null;
       try { data = text ? JSON.parse(text) : null; } catch(e){}
 
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Supabase rechazó la inserción', detail: data || text });
+      }
+
       return res.status(201).json({ success: true, message: 'Testimonio recibido con respeto.', data });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
@@ -97,11 +104,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Parámetros inválidos.' });
       }
 
-      await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
+      const response = await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
         method: 'PATCH',
         headers: getHeaders(),
         body: JSON.stringify({ apoyos_count })
       });
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Supabase rechazó la actualización' });
+      }
 
       return res.status(200).json({ success: true });
     } catch (err) {
