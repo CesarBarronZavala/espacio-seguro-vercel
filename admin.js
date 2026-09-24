@@ -321,7 +321,10 @@ function checkAdminAuth() {
   if (isAuth) {
     if (authSection) authSection.style.display = 'none';
     if (mainContent) mainContent.style.display = 'block';
-    initDatabase();
+    // Solo inicializar si aún no se ha inicializado (evita doble llamada)
+    if (!isUsingSupabase && !supabaseClient) {
+      initDatabase();
+    }
     loadAdminData();
   } else {
     if (authSection) authSection.style.display = 'block';
