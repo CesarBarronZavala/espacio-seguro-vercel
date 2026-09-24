@@ -3,14 +3,22 @@
  * Compatible con Vercel Serverless (Node 18+ nativo sin dependencias externas)
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://snvnosvrzicppqgncikk.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudm5vc3ZyemljcHBxZ25jaWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODExNDEsImV4cCI6MjEwMzg1NzE0MX0.FNglpiUoyHJMn9mt5_GeWxO-ehlr-guyFLyTY4wa5KM';
-const adminSecret = (process.env.ADMIN_SECRET_KEY || 'moderador2026').trim().toLowerCase();
+function getSupabaseBaseUrl() {
+  let url = (process.env.SUPABASE_URL || 'https://snvnosvrzicppqgncikk.supabase.co').trim();
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/rest\/v1$/, '');
+  return url;
+}
+
+function getSupabaseKey() {
+  return (process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudm5vc3ZyemljcHBxZ25jaWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODExNDEsImV4cCI6MjEwMzg1NzE0MX0.FNglpiUoyHJMn9mt5_GeWxO-ehlr-guyFLyTY4wa5KM').trim();
+}
 
 function getHeaders() {
+  const key = getSupabaseKey();
   return {
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'apikey': key,
+    'Authorization': 'Bearer ' + key,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
   };
@@ -26,6 +34,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  const adminSecret = (process.env.ADMIN_SECRET_KEY || 'moderador2026').trim().toLowerCase();
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.replace('Bearer ', '').trim().toLowerCase();
   const queryPin = (req.query.pin || '').trim().toLowerCase();
@@ -36,9 +45,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, error: 'Clave de moderador incorrecta o no proporcionada.' });
   }
 
+  const baseUrl = getSupabaseBaseUrl();
+
   if (req.method === 'GET') {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/experiencias?select=*&order=created_at.desc`, {
+      const response = await fetch(`${baseUrl}/rest/v1/experiencias?select=*&order=created_at.desc`, {
         method: 'GET',
         headers: getHeaders()
       });
@@ -58,7 +69,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Estado o ID inválido.' });
       }
 
-      await fetch(`${SUPABASE_URL}/rest/v1/experiencias?id=eq.${id}`, {
+      await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
         method: 'PATCH',
         headers: getHeaders(),
         body: JSON.stringify({ estado })
@@ -79,7 +90,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'ID requerido para eliminar.' });
       }
 
-      await fetch(`${SUPABASE_URL}/rest/v1/experiencias?id=eq.${id}`, {
+      await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
         method: 'DELETE',
         headers: getHeaders()
       });

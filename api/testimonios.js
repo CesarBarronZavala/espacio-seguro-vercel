@@ -3,13 +3,22 @@
  * Compatible con Vercel Serverless (Node 18+ nativo sin dependencias externas)
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://snvnosvrzicppqgncikk.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudm5vc3ZyemljcHBxZ25jaWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODExNDEsImV4cCI6MjEwMzg1NzE0MX0.FNglpiUoyHJMn9mt5_GeWxO-ehlr-guyFLyTY4wa5KM';
+function getSupabaseBaseUrl() {
+  let url = (process.env.SUPABASE_URL || 'https://snvnosvrzicppqgncikk.supabase.co').trim();
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/rest\/v1$/, '');
+  return url;
+}
+
+function getSupabaseKey() {
+  return (process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudm5vc3ZyemljcHBxZ25jaWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODExNDEsImV4cCI6MjEwMzg1NzE0MX0.FNglpiUoyHJMn9mt5_GeWxO-ehlr-guyFLyTY4wa5KM').trim();
+}
 
 function getHeaders() {
+  const key = getSupabaseKey();
   return {
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'apikey': key,
+    'Authorization': 'Bearer ' + key,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
   };
@@ -25,10 +34,12 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  const baseUrl = getSupabaseBaseUrl();
+
   // 1. GET: Obtener testimonios publicados
   if (req.method === 'GET') {
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/experiencias?estado=eq.publicado&select=*&order=created_at.desc`, {
+      const response = await fetch(`${baseUrl}/rest/v1/experiencias?estado=eq.publicado&select=*&order=created_at.desc`, {
         method: 'GET',
         headers: getHeaders()
       });
@@ -60,7 +71,7 @@ export default async function handler(req, res) {
         apoyos_count: 0
       };
 
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/experiencias`, {
+      const response = await fetch(`${baseUrl}/rest/v1/experiencias`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(newStory)
@@ -86,7 +97,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Parámetros inválidos.' });
       }
 
-      await fetch(`${SUPABASE_URL}/rest/v1/experiencias?id=eq.${id}`, {
+      await fetch(`${baseUrl}/rest/v1/experiencias?id=eq.${id}`, {
         method: 'PATCH',
         headers: getHeaders(),
         body: JSON.stringify({ apoyos_count })
