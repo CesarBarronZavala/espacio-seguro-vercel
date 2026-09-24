@@ -79,22 +79,42 @@ async function loadAdminData() {
 
   try {
     if (isUsingSupabase && supabaseClient) {
+      console.log('🔌 Consultando Supabase — tabla: experiencias, sin filtro de estado');
       const { data, error } = await supabaseClient
         .from('experiencias')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Error consultando Supabase en Admin:', error);
+        console.error('❌ Error Supabase al cargar admin:', JSON.stringify(error));
+        // Mostrar el error en pantalla para diagnóstico
+        if (listContainer) {
+          listContainer.innerHTML = `
+            <div style="padding:1.5rem; background:#fff3cd; border:1px solid #ffc107; border-radius:8px; margin:1rem;">
+              <strong>⚠️ Error de Supabase:</strong><br>
+              <code style="font-size:0.85rem; word-break:break-all;">${escapeHtml(JSON.stringify(error))}</code>
+              <br><br>
+              <small>Revisa que ejecutaste el <strong>schema.sql</strong> completo en Supabase SQL Editor.</small>
+            </div>`;
+        }
         allStories = getLocalStories();
       } else {
+        console.log(`✅ Supabase devolvió ${data ? data.length : 0} registros:`, data);
         allStories = data || [];
       }
     } else {
+      console.log('💡 Modo local — Supabase no configurado o no disponible');
       allStories = getLocalStories();
     }
   } catch (err) {
-    console.warn('Excepción al cargar datos en Admin:', err);
+    console.error('❌ Excepción al cargar datos en Admin:', err);
+    if (listContainer) {
+      listContainer.innerHTML = `
+        <div style="padding:1.5rem; background:#f8d7da; border:1px solid #f5c2c7; border-radius:8px; margin:1rem;">
+          <strong>❌ Error de conexión:</strong><br>
+          <code style="font-size:0.85rem;">${escapeHtml(err.message || String(err))}</code>
+        </div>`;
+    }
     allStories = getLocalStories();
   } finally {
     updateStats();
