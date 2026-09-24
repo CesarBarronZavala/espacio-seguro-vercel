@@ -1,13 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * API Endpoint: /api/moderacion
+ * Compatible con Vercel Serverless (Node 18+ nativo sin dependencias externas)
+ */
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://snvnosvrzicppqgncikk.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudm5vc3ZyemljcHBxZ25jaWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODExNDEsImV4cCI6MjEwMzg1NzE0MX0.FNglpiUoyHJMn9mt5_GeWxO-ehlr-guyFLyTY4wa5KM';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://snvnosvrzicppqgncikk.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudm5vc3ZyemljcHBxZ25jaWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODExNDEsImV4cCI6MjEwMzg1NzE0MX0.FNglpiUoyHJMn9mt5_GeWxO-ehlr-guyFLyTY4wa5KM';
 const adminSecret = (process.env.ADMIN_SECRET_KEY || 'moderador2026').trim().toLowerCase();
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+function getHeaders() {
+  return {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+}
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
@@ -28,13 +38,12 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const { data, error } = await supabase
-        .from('experiencias')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return res.status(200).json({ success: true, data: data || [] });
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/experiencias?select=*&order=created_at.desc`, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+      const data = await response.json();
+      return res.status(200).json({ success: true, data: Array.isArray(data) ? data : [] });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
     }
@@ -43,20 +52,19 @@ export default async function handler(req, res) {
   if (req.method === 'PUT') {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const { id, estado } = body;
+      const { id, estado } = body || {};
 
       if (!id || !['pendiente', 'publicado', 'rechazado'].includes(estado)) {
         return res.status(400).json({ success: false, error: 'Estado o ID inválido.' });
       }
 
-      const { data, error } = await supabase
-        .from('experiencias')
-        .update({ estado })
-        .eq('id', id)
-        .select();
+      await fetch(`${SUPABASE_URL}/rest/v1/experiencias?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ estado })
+      });
 
-      if (error) throw error;
-      return res.status(200).json({ success: true, message: `Estado actualizado a ${estado}`, data });
+      return res.status(200).json({ success: true, message: `Estado actualizado a ${estado}` });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
     }
@@ -65,18 +73,17 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const id = body.id || req.query.id;
+      const id = (body && body.id) || req.query.id;
 
       if (!id) {
         return res.status(400).json({ success: false, error: 'ID requerido para eliminar.' });
       }
 
-      const { error } = await supabase
-        .from('experiencias')
-        .delete()
-        .eq('id', id);
+      await fetch(`${SUPABASE_URL}/rest/v1/experiencias?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
 
-      if (error) throw error;
       return res.status(200).json({ success: true, message: 'Registro eliminado definitivamente.' });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
